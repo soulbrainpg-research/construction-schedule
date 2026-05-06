@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공정 진행 현황 보고서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --surface2: #f7f8fa;
+  --surface3: #eceef2;
+  --border: rgba(0,0,0,0.07);
+  --border-md: rgba(0,0,0,0.11);
+  --border-strong: rgba(0,0,0,0.18);
+  --text: #181e2e;
+  --text-muted: #6b7280;
+  --text-dim: #adb5bd;
+
+  --건축: #5548c8;
+  --전기: #1a6db0;
+  --소방: #b53030;
+  --공조: #18896a;
+  --배관: #ad6612;
+  --plan-opacity: 0.15;
+
+  --today-color: #dc2626;
+  --report-color: #2563eb;
+
+  --new-bg: #dcfce7; --new-fg: #15803d;
+  --cancel-bg: #f3f4f6; --cancel-fg: #6b7280;
+  --delay-bg: #fef9c3; --delay-fg: #92400e;
+  --early-bg: #dbeafe; --early-fg: #1e40af;
+  --change-bg: #fce7f3; --change-fg: #9d174d;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── TOPBAR ─── */
+.topbar {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-md);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  height: 54px;
+  display: flex; align-items: center;
+  padding: 0 24px; gap: 14px;
+}
+.tb-logo { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+.tb-logo span { color: var(--건축); }
+.tb-div { width: 1px; height: 18px; background: var(--border-md); flex-shrink: 0; }
+.tb-week {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.tb-report-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  background: #eff6ff; color: var(--report-color);
+  border: 1px solid #bfdbfe; border-radius: 20px; padding: 3px 10px;
+  white-space: nowrap;
+}
+.tb-today-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  background: #fef2f2; color: var(--today-color);
+  border: 1px solid #fca5a5; border-radius: 20px; padding: 3px 10px;
+  white-space: nowrap;
+}
+.tb-spacer { flex: 1; }
+.tb-btn {
+  font-size: 12px; color: var(--text-muted);
+  border: 1px solid var(--border-md); background: var(--surface2);
+  border-radius: 6px; padding: 5px 12px; cursor: pointer; transition: all .15s;
+  white-space: nowrap;
+}
+.tb-btn:hover { background: var(--surface3); color: var(--text); }
+
+/* ─── STATS ─── */
+.stats-row {
+  padding: 16px 24px 0;
+  display: grid; grid-template-columns: repeat(5,1fr); gap: 10px;
+}
+.sc {
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.sc-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-dim); margin-bottom: 5px;
+}
+.sc-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px; font-weight: 600; line-height: 1; color: var(--text);
+}
+.sc-val em { font-size: 13px; font-style: normal; color: var(--text-muted); font-family: 'Noto Sans KR', sans-serif; }
+.sc-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.prog-track { height: 3px; background: var(--surface3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.prog-fill  { height: 100%; border-radius: 2px; transition: width .7s cubic-bezier(.4,0,.2,1); }
+
+/* ─── INFO ROW ─── */
+.info-row {
+  padding: 12px 24px 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.ic {
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.ic-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.ic-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.ch-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px;
+}
+.ch-item:last-child { border-bottom: none; }
+.ch-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 10px;
+  white-space: nowrap; flex-shrink: 0; margin-top: 2px;
+}
+.ch-text { color: var(--text-muted); line-height: 1.4; }
+.ch-text strong { color: var(--text); font-weight: 500; }
+
+.iss-item {
+  display: flex; gap: 8px; padding: 6px 0;
+  border-bottom: 1px solid var(--border); font-size: 12px;
+  color: var(--text-muted); align-items: flex-start;
+}
+.iss-item:last-child { border-bottom: none; }
+.iss-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); flex-shrink: 0; margin-top: 2px; }
+
+/* ─── FILTERS ─── */
+.filterbar {
+  padding: 14px 24px 0;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.fl-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.06em; margin-right: 2px; }
+.fbtn {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px; padding: 5px 14px; border-radius: 20px;
+  border: 1px solid var(--border-md); background: var(--surface);
+  color: var(--text-muted); cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 5px;
+}
+.fbtn .fd { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.fbtn:hover { background: var(--surface3); color: var(--text); }
+.fbtn.on { font-weight: 500; }
+.fbtn.on[data-c="all"] { background: var(--text); color: #fff; border-color: var(--text); }
+.fbtn.on[data-c="건축"] { background: #edeafc; border-color: #a99ef0; color: var(--건축); }
+.fbtn.on[data-c="전기"] { background: #ddeaf8; border-color: #93c5fd; color: var(--전기); }
+.fbtn.on[data-c="소방"] { background: #fce8e8; border-color: #fca5a5; color: var(--소방); }
+.fbtn.on[data-c="공조"] { background: #d9f4ec; border-color: #6ee7b7; color: var(--공조); }
+.fbtn.on[data-c="배관"] { background: #fdf0de; border-color: #fcd34d; color: var(--배관); }
+
+/* ─── GANTT ─── */
+.gantt-section { padding: 14px 24px 40px; }
+.gantt-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border-md); border-radius: 10px;
+  overflow: hidden; min-width: 860px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+/* Header */
+.ghead {
+  display: flex;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border-md);
+  position: sticky; top: 54px; z-index: 100;
+}
+.ghead-label {
+  width: 200px; min-width: 200px;
+  border-right: 1px solid var(--border-md);
+  padding: 0 14px; display: flex; align-items: center;
+  height: 54px;
+}
+.ghead-label-text {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.gcol { flex: 1; overflow: hidden; }
+.months-row { display: flex; height: 26px; border-bottom: 1px solid var(--border); }
+.mseg {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--text-muted); border-right: 1px solid var(--border-md);
+  font-family: 'JetBrains Mono', monospace;
+}
+.mseg:last-child { border-right: none; }
+.days-row { display: flex; height: 28px; }
+.dseg {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-family: 'JetBrains Mono', monospace;
+  color: var(--text-dim); border-right: 1px solid var(--border);
+}
+.dseg:last-child { border-right: none; }
+.dseg.wknd { background: rgba(0,0,0,0.016); }
+.dseg.is-today { background: #fef2f2; color: var(--today-color); font-weight: 700; }
+.dseg.is-report { background: #eff6ff; color: var(--report-color); font-weight: 700; }
+.dseg.is-today.is-report { background: #fef2f2; color: var(--today-color); }
+
+/* Cat group */
+.cat-grp + .cat-grp { border-top: 2px solid var(--border-md); }
+.cat-row {
+  display: flex; align-items: stretch;
+  background: var(--surface2); cursor: pointer;
+  user-select: none; transition: background .1s;
+}
+.cat-row:hover { background: var(--surface3); }
+.cat-cell {
+  width: 200px; min-width: 200px;
+  padding: 8px 14px; border-right: 1px solid var(--border-md);
+  display: flex; align-items: center; gap: 8px;
+}
+.cat-stripe { width: 3px; height: 20px; border-radius: 2px; flex-shrink: 0; }
+.cat-name { font-size: 12px; font-weight: 700; }
+.cat-pct {
+  font-size: 10px; font-family: 'JetBrains Mono', monospace; font-weight: 600;
+  padding: 2px 7px; border-radius: 10px; margin-left: auto; flex-shrink: 0;
+}
+.cat-toggle { font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+.cat-tl { flex: 1; position: relative; min-height: 38px; }
+
+/* Task */
+.task-row {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--border); min-height: 34px;
+  transition: background .1s;
+}
+.task-row:hover { background: #fafbfc; }
+.task-row.is-cancelled .tname { text-decoration: line-through; color: var(--text-dim); }
+.tcell {
+  width: 200px; min-width: 200px;
+  padding: 5px 14px 5px 26px;
+  border-right: 1px solid var(--border);
+  display: flex; align-items: center; gap: 5px;
+}
+.ticon { font-size: 10px; flex-shrink: 0; }
+.tname { font-size: 11px; color: var(--text-muted); line-height: 1.35; flex: 1; }
+.tpct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap;
+}
+.ttl { flex: 1; position: relative; min-height: 34px; }
+
+/* Grid */
+.glines { position: absolute; inset: 0; display: flex; pointer-events: none; }
+.gl { flex: 1; border-right: 1px solid var(--border); height: 100%; }
+.gl:last-child { border-right: none; }
+.gl.wknd { background: rgba(0,0,0,0.013); }
+
+/* Bars */
+.plan-bar {
+  position: absolute;
+  height: 6px; top: 50%; transform: translateY(-50%);
+  border-radius: 2px; opacity: var(--plan-opacity);
+  pointer-events: none;
+}
+.actual-bar {
+  position: absolute;
+  height: 20px; top: 50%; transform: translateY(-50%);
+  border-radius: 3px;
+  display: flex; align-items: center; padding: 0 7px;
+  font-size: 9px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: default; transition: filter .15s;
+}
+.actual-bar:hover { filter: brightness(1.08); z-index: 10; }
+.actual-bar.is-done   { opacity: 0.4; }
+.actual-bar.is-active { box-shadow: 0 0 0 2px currentColor; }
+.actual-bar.is-cancelled {
+  opacity: 0.3;
+  background: repeating-linear-gradient(
+    45deg, #9ca3af 0,#9ca3af 3px,transparent 3px,transparent 7px
+  ) !important;
+}
+.bar-prog-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  border-radius: 3px; background: rgba(0,0,0,0.14);
+  pointer-events: none;
+}
+.new-badge {
+  font-size: 7px; font-weight: 800; letter-spacing: 0.07em;
+  background: var(--new-bg); color: var(--new-fg);
+  border-radius: 3px; padding: 1px 4px; margin-left: 4px; flex-shrink: 0;
+}
+
+/* Today / Report lines */
+.today-line {
+  position: absolute; top: 0; bottom: 0;
+  width: 2px; background: var(--today-color);
+  opacity: 0.6; z-index: 30; pointer-events: none;
+}
+.today-line::before {
+  content: '';
+  position: absolute; top: 4px; left: -3px;
+  width: 8px; height: 8px;
+  background: var(--today-color); border-radius: 50%;
+}
+.report-line {
+  position: absolute; top: 0; bottom: 0;
+  width: 1.5px; background: var(--report-color);
+  opacity: 0.45; z-index: 29; pointer-events: none;
+}
+/* hide report line when same day as today */
+.report-line.same-as-today { display: none; }
+
+/* ─── LEGEND ─── */
+.legend {
+  padding: 12px 24px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.li { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); }
+.li-sw { width: 12px; height: 12px; border-radius: 2px; }
+.li-plan { width: 18px; height: 5px; background: #888; border-radius: 2px; opacity: .25; }
+.li-today-line { width: 2px; height: 14px; background: var(--today-color); border-radius: 1px; opacity: .7; }
+.li-report-line { width: 2px; height: 14px; background: var(--report-color); border-radius: 1px; opacity: .5; border-style: dashed; }
+.li-div { width: 1px; height: 14px; background: var(--border-md); }
+
+/* ─── TOOLTIP ─── */
+.tooltip {
+  position: fixed; z-index: 999; pointer-events: none;
+  background: #1a1d26; color: #e8eaf0;
+  font-size: 11px; line-height: 1.6;
+  padding: 9px 13px; border-radius: 7px;
+  max-width: 250px; box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+  opacity: 0; transition: opacity .1s;
+  white-space: nowrap;
+}
+
+@media print {
+  .topbar, .ghead { position: static; }
+  .tb-btn { display: none; }
+  body { background: #fff; }
+}
+</style>
+</head>
+<body>
+
+<div class="tooltip" id="tip"></div>
+
+<!-- ════════════════════════════════════════════
+     ★★★  매주 이 REPORT 블록만 수정하세요  ★★★
+     ════════════════════════════════════════════ -->
+<script>
+const REPORT = {
+  // ── 기본 정보 ──────────────────────────────
+  weekLabel:    'W05',           // 주차
+  reportDate:   '2026-04-29',   // 보고 기준일 (실적 입력 기준)
+  projectStart: '2026-03-23',
+  projectEnd:   '2026-06-15',
+
+  // ── 변경 사항 (이번 주에 생긴 것만) ──────────
+  // type: 'new' | 'cancel' | 'delay' | 'early' | 'change'
+  changes: [
+    // 예시:
+    // { type:'delay', text:'<strong>창호·유리 2차</strong> 4/26 → 5/3으로 지연 (자재 납기 지연)' },
+    // { type:'new',   text:'<strong>방수 보강 공사</strong> 신규 추가 (5/10~5/12)' },
+    // { type:'cancel',text:'<strong>수평 몰탈 2차</strong> 공정 취소' },
+  ],
+
+  // ── 특이사항 / 이슈 ───────────────────────
+  issues: [
+    '초기 보고 기준 — 변경 사항 없음',
+    '이 파일을 열 때마다 오늘 날짜 기준으로 TODAY 선이 자동 이동합니다',
+  ],
+
+  // ── 작업별 진척률 (0~100) ─────────────────
+  progress: {
+    // 건축
+    'arch-01':100, 'arch-02':100, 'arch-03': 70,
+    'arch-04':100, 'arch-05': 90, 'arch-06': 60,
+    'arch-07':  0, 'arch-08': 30, 'arch-09':  0,
+    'arch-10':  0, 'arch-11':  0, 'arch-12': 80,
+    'arch-13':  0, 'arch-14':  0, 'arch-15':  0,
+    // 전기
+    'elec-01':100, 'elec-02': 80, 'elec-03': 70,
+    'elec-04': 50, 'elec-05': 50, 'elec-06': 20,
+    'elec-07':  0, 'elec-08':  0,
+    // 소방
+    'fire-01':100, 'fire-02':100, 'fire-03':100,
+    'fire-04': 80, 'fire-05': 80, 'fire-06':  0,
+    // 공조
+    'hvac-01':100, 'hvac-02':100, 'hvac-03':100,
+    'hvac-04':100, 'hvac-05': 80, 'hvac-06': 30,
+    'hvac-07': 90, 'hvac-08': 30, 'hvac-09':  0,
+    // 배관
+    'pipe-01':  0, 'pipe-02':  0, 'pipe-03':  0,
+    'pipe-04':  0, 'pipe-05':  0,
+  },
+
+  // ── 일정이 변경된 작업만 (계획 대비 실제 날짜) ──
+  // 없으면 빈 객체 {}
+  actualDates: {
+    // 'arch-06': { start:'2026-04-14', end:'2026-04-24' },
+  },
+
+  // ── 특수 상태: 'cancelled' | 'new' | null ─
+  taskStatus: {
+    // 'arch-07': 'cancelled',
+  },
+};
+</script>
+<!-- ════════════════════════════════════════════ -->
+
+<script>
+// ─── 공정 데이터 (변경 없음) ───────────────────
+function D(s){ return new Date(s+'T00:00:00'); }
+function dmy(y,m,day){ return new Date(y,m-1,day); }
+
+const COLORS  = { 건축:'#5548c8', 전기:'#1a6db0', 소방:'#b53030', 공조:'#18896a', 배관:'#ad6612' };
+const TXTCOLS = { 건축:'#ede9ff', 전기:'#dbeafe', 소방:'#fee2e2', 공조:'#d1fae5', 배관:'#fef3c7' };
+const CATBG   = { 건축:'#edeafc', 전기:'#ddeaf8', 소방:'#fce8e8', 공조:'#d9f4ec', 배관:'#fdf0de' };
+
+const categories = [
+  { id:'건축', name:'건축공사', tasks:[
+    {id:'arch-01', name:'바닥 보양',              s:dmy(2026,3,25), e:dmy(2026,4,6)},
+    {id:'arch-02', name:'6·7층 철거',             s:dmy(2026,3,25), e:dmy(2026,4,4)},
+    {id:'arch-03', name:'마이톤·석고 벽체 설치',  s:dmy(2026,4,8),  e:dmy(2026,4,24)},
+    {id:'arch-04', name:'커버 설치 (금속)',        s:dmy(2026,3,27), e:dmy(2026,4,2)},
+    {id:'arch-05', name:'수평 몰탈 (미장)',        s:dmy(2026,4,2),  e:dmy(2026,4,12)},
+    {id:'arch-06', name:'창호·유리 1차 설치',      s:dmy(2026,4,12), e:dmy(2026,4,22)},
+    {id:'arch-07', name:'창호·유리 2차 설치',      s:dmy(2026,4,26), e:dmy(2026,5,8)},
+    {id:'arch-08', name:'수성·유성 페인트 1차',    s:dmy(2026,4,16), e:dmy(2026,4,22)},
+    {id:'arch-09', name:'내산 에폭시 라이닝 1차',  s:dmy(2026,4,22), e:dmy(2026,4,28)},
+    {id:'arch-10', name:'수성·유성 페인트 2차',    s:dmy(2026,4,28), e:dmy(2026,5,10)},
+    {id:'arch-11', name:'내산 에폭시 라이닝 2차',  s:dmy(2026,5,2),  e:dmy(2026,5,12)},
+    {id:'arch-12', name:'벽·슬라브 타공',          s:dmy(2026,4,2),  e:dmy(2026,4,14)},
+    {id:'arch-13', name:'6·7층 천장 마감',         s:dmy(2026,4,23), e:dmy(2026,4,25)},
+    {id:'arch-14', name:'경사로 설치',             s:dmy(2026,4,27), e:dmy(2026,4,29)},
+    {id:'arch-15', name:'준공청소',                s:dmy(2026,4,29), e:dmy(2026,4,30)},
+  ]},
+  { id:'전기', name:'전기공사', tasks:[
+    {id:'elec-01', name:'전등·전열 설비 철거',     s:dmy(2026,3,23), e:dmy(2026,4,8)},
+    {id:'elec-02', name:'AC타워 전기 인입',         s:dmy(2026,4,8),  e:dmy(2026,4,18)},
+    {id:'elec-03', name:'전력 간선 공사',           s:dmy(2026,4,6),  e:dmy(2026,4,20)},
+    {id:'elec-04', name:'레이스웨이·전등 설치',     s:dmy(2026,4,16), e:dmy(2026,4,28)},
+    {id:'elec-05', name:'전등 설치 (4/22~23)',      s:dmy(2026,4,22), e:dmy(2026,4,24)},
+    {id:'elec-06', name:'케이블 포설·동력 공사',    s:dmy(2026,4,20), e:dmy(2026,5,10)},
+    {id:'elec-07', name:'분전반 설치·결선',         s:dmy(2026,4,28), e:dmy(2026,5,18)},
+    {id:'elec-08', name:'마감 및 잔손보기',         s:dmy(2026,5,10), e:dmy(2026,5,30)},
+  ]},
+  { id:'소방', name:'소방공사', tasks:[
+    {id:'fire-01', name:'소방(기계) 철거',          s:dmy(2026,3,23), e:dmy(2026,4,2)},
+    {id:'fire-02', name:'소방(전기) 철거',          s:dmy(2026,3,23), e:dmy(2026,4,2)},
+    {id:'fire-03', name:'스프링클러 (4/1,3)',       s:dmy(2026,4,1),  e:dmy(2026,4,4)},
+    {id:'fire-04', name:'스프링클러 (4/7~)',        s:dmy(2026,4,7),  e:dmy(2026,4,23)},
+    {id:'fire-05', name:'감지기·유도등·스피커',     s:dmy(2026,4,7),  e:dmy(2026,4,23)},
+    {id:'fire-06', name:'보온재 마감 (4/23~24)',    s:dmy(2026,4,23), e:dmy(2026,4,25)},
+  ]},
+  { id:'공조', name:'공조공사', tasks:[
+    {id:'hvac-01', name:'DUCT 철거 6·7층',          s:dmy(2026,3,24), e:dmy(2026,3,26)},
+    {id:'hvac-02', name:'6층 DUCT 설치 (4/7~8)',    s:dmy(2026,4,7),  e:dmy(2026,4,9)},
+    {id:'hvac-03', name:'7층 DUCT 설치 (4/16~17)',  s:dmy(2026,4,16), e:dmy(2026,4,18)},
+    {id:'hvac-04', name:'냉난방기 설치 7층',         s:dmy(2026,4,9),  e:dmy(2026,4,11)},
+    {id:'hvac-05', name:'덕트 간섭부 사전 제작',    s:dmy(2026,4,14), e:dmy(2026,4,22)},
+    {id:'hvac-06', name:'덕트 자재 발주 (1·2·3차)', s:dmy(2026,4,18), e:dmy(2026,5,10)},
+    {id:'hvac-07', name:'현장 시공 (4/7~)',         s:dmy(2026,4,7),  e:dmy(2026,4,21)},
+    {id:'hvac-08', name:'1차 시공 (4/21~24)',        s:dmy(2026,4,21), e:dmy(2026,4,25)},
+    {id:'hvac-09', name:'시운전·유방서 심사',        s:dmy(2026,6,1),  e:dmy(2026,6,6)},
+  ]},
+  { id:'배관', name:'배관공사', tasks:[
+    {id:'pipe-01', name:'자재 정리·배관 작업',      s:dmy(2026,4,20), e:dmy(2026,5,7)},
+    {id:'pipe-02', name:'6·7층 CDA/상수/폐수/N2',   s:dmy(2026,4,28), e:dmy(2026,5,9)},
+    {id:'pipe-03', name:'DIW 급수라인 설치',         s:dmy(2026,5,11), e:dmy(2026,5,16)},
+    {id:'pipe-04', name:'8층 폐수배관 변경',         s:dmy(2026,5,11), e:dmy(2026,5,14)},
+    {id:'pipe-05', name:'청소·마감 확인',            s:dmy(2026,5,15), e:dmy(2026,5,16)},
+  ]},
+];
+
+// ─── 날짜 계산 ───────────────────────────────
+const PROJECT_START = D(REPORT.projectStart);
+const PROJECT_END   = D(REPORT.projectEnd);
+const REPORT_DATE   = D(REPORT.reportDate);    // 실적 기준일 (고정)
+const TODAY         = (() => {                  // 열람 기준일 (자동)
+  const t = new Date();
+  return new Date(t.getFullYear(), t.getMonth(), t.getDate());
+})();
+
+const TOTAL_DAYS = Math.round((PROJECT_END - PROJECT_START) / 86400000) + 1;
+function dayOff(dt){ return Math.max(0, Math.round((dt - PROJECT_START) / 86400000)); }
+function pct(off){ return ((off / TOTAL_DAYS)*100).toFixed(4)+'%'; }
+function pctW(w){  return ((Math.max(0,w) / TOTAL_DAYS)*100).toFixed(4)+'%'; }
+function fmt(dt){  return `${dt.getMonth()+1}/${dt.getDate()}`; }
+function fmtFull(dt){ return `${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`; }
+function sameDay(a,b){ return a.toDateString()===b.toDateString(); }
+
+function getActual(task){
+  const ov = REPORT.actualDates[task.id];
+  return {
+    s: ov?.start ? D(ov.start) : task.s,
+    e: ov?.end   ? D(ov.end)   : task.e,
+  };
+}
+
+// ─── 날짜 배열 ───────────────────────────────
+function buildMonths(){
+  const months=[]; let cur=new Date(PROJECT_START);
+  while(cur<=PROJECT_END){
+    const m=cur.getMonth(), y=cur.getFullYear();
+    let cnt=0;
+    while(cur<=PROJECT_END && cur.getMonth()===m){ cnt++; cur.setDate(cur.getDate()+1); }
+    const lbl=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    months.push({label:`${lbl[m]} ${y}`, days:cnt});
+  }
+  return months;
+}
+function buildDays(){
+  const days=[]; let cur=new Date(PROJECT_START), i=0;
+  while(cur<=PROJECT_END){
+    const dow=cur.getDay();
+    days.push({
+      date:cur.getDate(), off:i,
+      weekend:dow===0||dow===6,
+      isToday:sameDay(cur,TODAY),
+      isReport:sameDay(cur,REPORT_DATE),
+    });
+    cur=new Date(cur); cur.setDate(cur.getDate()+1); i++;
+  }
+  return days;
+}
+
+// ─── UI 초기화 ───────────────────────────────
+function initTopbar(){
+  document.getElementById('tb-week').textContent = REPORT.weekLabel;
+  document.getElementById('tb-report').textContent = `보고기준 ${fmtFull(REPORT_DATE)}`;
+  document.getElementById('tb-today').textContent = `오늘 ${fmtFull(TODAY)}`;
+}
+
+function initStats(){
+  const allTasks = categories.flatMap(c=>c.tasks);
+  const total    = allTasks.length;
+  const active   = allTasks.filter(t=>{
+    const {s,e}=getActual(t);
+    return s<=TODAY && e>=TODAY && REPORT.taskStatus[t.id]!=='cancelled';
+  }).length;
+  const done     = allTasks.filter(t=>{
+    const {e}=getActual(t);
+    return e<TODAY && REPORT.taskStatus[t.id]!=='cancelled';
+  }).length;
+
+  const progs = allTasks.filter(t=>REPORT.taskStatus[t.id]!=='cancelled').map(t=>REPORT.progress[t.id]??0);
+  const overallPct = progs.length ? Math.round(progs.reduce((a,b)=>a+b,0)/progs.length) : 0;
+
+  const totalProjectDays = Math.round((PROJECT_END-PROJECT_START)/86400000);
+  const elapsed = Math.max(0,Math.min(Math.round((TODAY-PROJECT_START)/86400000), totalProjectDays));
+  const timePct = Math.round(elapsed/totalProjectDays*100);
+  const remain  = Math.max(0,Math.round((PROJECT_END-TODAY)/86400000));
+  const remainPct = Math.round(elapsed/totalProjectDays*100);
+
+  document.getElementById('s-pct').innerHTML   = `${overallPct}<em>%</em>`;
+  document.getElementById('pf-pct').style.width= overallPct+'%';
+  document.getElementById('s-pct-sub').textContent = `계획 경과 ${timePct}% 대비`;
+  document.getElementById('s-active').innerHTML= `${active}<em>건</em>`;
+  document.getElementById('s-done').innerHTML  = `${done}<em>건</em>`;
+  document.getElementById('s-done-sub').textContent=`전체 ${total}건 중`;
+  document.getElementById('s-ch').innerHTML    = `${REPORT.changes.length}<em>건</em>`;
+  document.getElementById('s-remain').innerHTML= `${remain}<em>일</em>`;
+  document.getElementById('pf-remain').style.width= remainPct+'%';
+  document.getElementById('s-remain-sub').textContent= `준공 예정 ${fmt(PROJECT_END)}까지`;
+
+  // Change log
+  const BADGE_MAP={new:'badge-new',cancel:'badge-cancel',delay:'badge-delay',early:'badge-early',change:'badge-change'};
+  const LBL_MAP  ={new:'신규',cancel:'취소',delay:'지연',early:'단축',change:'변경'};
+  const cl=document.getElementById('change-log');
+  cl.innerHTML=REPORT.changes.length
+    ? REPORT.changes.map(c=>`<div class="ch-item">
+        <span class="ch-badge ${BADGE_MAP[c.type]||'badge-change'}">${LBL_MAP[c.type]||c.type}</span>
+        <span class="ch-text">${c.text}</span></div>`).join('')
+    : `<div class="ch-item"><span class="ch-text" style="color:var(--text-dim)">이번 주 변경 사항 없음</span></div>`;
+
+  // Issues
+  const ib=document.getElementById('issues-log');
+  ib.innerHTML=REPORT.issues.length
+    ? REPORT.issues.map((s,i)=>`<div class="iss-item"><span class="iss-num">${String(i+1).padStart(2,'0')}</span><span>${s}</span></div>`).join('')
+    : `<div class="iss-item"><span style="color:var(--text-dim)">특이사항 없음</span></div>`;
+}
+
+// ─── 간트 렌더 ───────────────────────────────
+let activeFilter='all', collapsed={};
+
+function setFilter(cat,btn){
+  activeFilter=cat;
+  document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderGantt();
+}
+function toggleCat(id){ collapsed[id]=!collapsed[id]; renderGantt(); }
+
+function renderGantt(){
+  const months=buildMonths(), days=buildDays();
+  const todayOff  = dayOff(TODAY);
+  const reportOff = dayOff(REPORT_DATE);
+  const todayP    = pct(todayOff);
+  const reportP   = pct(reportOff);
+  const sameLines = sameDay(TODAY,REPORT_DATE);
+
+  let html='';
+
+  // HEADER
+  html+=`<div class="ghead">
+    <div class="ghead-label"><span class="ghead-label-text">공 종 / 작 업</span></div>
+    <div class="gcol">
+      <div class="months-row">`;
+  months.forEach(m=>{
+    html+=`<div class="mseg" style="flex:${m.days} ${m.days} 0;">${m.label}</div>`;
+  });
+  html+=`</div><div class="days-row">`;
+  days.forEach(d=>{
+    let cls='dseg';
+    if(d.weekend) cls+=' wknd';
+    if(d.isToday)  cls+=' is-today';
+    if(d.isReport && !d.isToday) cls+=' is-report';
+    html+=`<div class="${cls}">${d.date%4===1||d.isToday||d.isReport?d.date:''}</div>`;
+  });
+  html+=`</div></div></div>`;
+
+  // Grid helper
+  const gridLines=()=>{
+    let g=`<div class="glines">`;
+    days.forEach(d=>{ g+=`<div class="gl${d.weekend?' wknd':''}"></div>`; });
+    return g+`</div>`;
+  };
+  const vLines=()=>`
+    <div class="report-line${sameLines?' same-as-today':''}" style="left:${reportP}"></div>
+    <div class="today-line" style="left:${todayP}"></div>`;
+
+  // CATS
+  const cats=activeFilter==='all'?categories:categories.filter(c=>c.id===activeFilter);
+
+  cats.forEach(cat=>{
+    const col=COLORS[cat.id], txt=TXTCOLS[cat.id], cbg=CATBG[cat.id];
+    const isCollapsed=collapsed[cat.id];
+    const progs=cat.tasks.filter(t=>REPORT.taskStatus[t.id]!=='cancelled').map(t=>REPORT.progress[t.id]??0);
+    const avg=progs.length?Math.round(progs.reduce((a,b)=>a+b,0)/progs.length):0;
+
+    html+=`<div class="cat-grp">
+      <div class="cat-row" onclick="toggleCat('${cat.id}')">
+        <div class="cat-cell">
+          <div class="cat-stripe" style="background:${col}"></div>
+          <span class="cat-name" style="color:${col}">${cat.name}</span>
+          <span class="cat-pct" style="background:${cbg};color:${col}">${avg}%</span>
+          <span class="cat-toggle">${isCollapsed?'▶':'▼'}</span>
+        </div>
+        <div class="cat-tl">${gridLines()}${vLines()}</div>
+      </div>`;
+
+    if(!isCollapsed){
+      cat.tasks.forEach(task=>{
+        const {s:aS, e:aE}=getActual(task);
+        const pS=dayOff(task.s), pE=dayOff(task.e), pW=pE-pS+1;
+        const aOff=dayOff(aS), aOffe=dayOff(aE), aW=aOffe-aOff+1;
+        const prog=REPORT.progress[task.id]??0;
+        const st=REPORT.taskStatus[task.id]||null;
+
+        const isDone     = prog===100||(aE<TODAY && !st);
+        const isActive   = aS<=TODAY && aE>=TODAY && st!=='cancelled';
+        const isCancelled= st==='cancelled';
+        const isNew      = st==='new';
+        const isDelayed  = !!REPORT.actualDates[task.id] && !isCancelled;
+
+        let barCls='actual-bar';
+        if(isDone && !isCancelled) barCls+=' is-done';
+        if(isActive)   barCls+=' is-active';
+        if(isCancelled)barCls+=' is-cancelled';
+
+        const icon=isDone?'✓':isActive?'●':isCancelled?'✕':'';
+        const iconColor=isDone?'#16a34a':isActive?col:'#9ca3af';
+        const pctLabel=isCancelled?'취소':`${prog}%`;
+
+        const tt=`${task.name}\\n계획: ${fmt(task.s)} ~ ${fmt(task.e)}\\n실적: ${fmt(aS)} ~ ${fmt(aE)}\\n진척률: ${prog}%${isDelayed?' [일정변경]':''}${isCancelled?' [취소]':''}${isNew?' [신규]':''}`;
+
+        html+=`<div class="task-row${isCancelled?' is-cancelled':''}">
+          <div class="tcell">
+            ${icon?`<span class="ticon" style="color:${iconColor}">${icon}</span>`:''}
+            <span class="tname">${task.name}${isNew?'<span class="new-badge">NEW</span>':''}</span>
+            <span class="tpct">${pctLabel}</span>
+          </div>
+          <div class="ttl">
+            ${gridLines()}
+            ${vLines()}
+            <div class="plan-bar" style="left:${pct(pS)};width:${pctW(pW)};background:${col}"></div>
+            <div class="${barCls}" style="left:${pct(aOff)};width:${pctW(aW)};background:${col};color:${txt};"
+              onmouseenter="showTip(event,'${tt}')" onmouseleave="hideTip()">
+              <div class="bar-prog-fill" style="width:${prog}%"></div>
+              ${aW>=4?task.name:''}
+              ${isNew?'<span class="new-badge">NEW</span>':''}
+            </div>
+          </div>
+        </div>`;
+      });
+    }
+    html+=`</div>`;
+  });
+
+  document.getElementById('gantt-wrap').innerHTML=html;
+}
+
+// ─── Tooltip ─────────────────────────────────
+function showTip(e,text){
+  const t=document.getElementById('tip');
+  t.innerHTML=text.replace(/\\n/g,'<br>');
+  t.style.opacity='1';
+  moveTip(e);
+}
+function moveTip(e){
+  const t=document.getElementById('tip');
+  t.style.left=(e.clientX+14)+'px';
+  t.style.top=(e.clientY-8)+'px';
+}
+function hideTip(){ document.getElementById('tip').style.opacity='0'; }
+document.addEventListener('mousemove',e=>{
+  const t=document.getElementById('tip');
+  if(t.style.opacity!=='0'){ t.style.left=(e.clientX+14)+'px'; t.style.top=(e.clientY-8)+'px'; }
+});
+
+// ─── INIT ────────────────────────────────────
+initTopbar();
+initStats();
+renderGantt();
+</script>
+
+<!-- DOM -->
+<div class="topbar">
+  <div class="tb-logo">공정<span>현황</span></div>
+  <div class="tb-div"></div>
+  <div class="tb-week" id="tb-week"></div>
+  <div class="tb-div"></div>
+  <div class="tb-report-chip" id="tb-report"></div>
+  <div class="tb-today-chip"  id="tb-today"></div>
+  <div class="tb-spacer"></div>
+  <button class="tb-btn" onclick="window.print()">🖨 인쇄 / PDF</button>
+</div>
+
+<div class="stats-row">
+  <div class="sc">
+    <div class="sc-label">전체 진척률</div>
+    <div class="sc-val" id="s-pct">—<em>%</em></div>
+    <div class="prog-track"><div class="prog-fill" id="pf-pct" style="background:#5548c8;width:0%"></div></div>
+    <div class="sc-sub" id="s-pct-sub">계획 대비</div>
+  </div>
+  <div class="sc">
+    <div class="sc-label">진행 중</div>
+    <div class="sc-val" id="s-active" style="color:#16a34a">—<em>건</em></div>
+    <div class="sc-sub">오늘 기준 진행 중인 작업</div>
+  </div>
+  <div class="sc">
+    <div class="sc-label">완료</div>
+    <div class="sc-val" id="s-done" style="color:#6b7280">—<em>건</em></div>
+    <div class="sc-sub" id="s-done-sub"></div>
+  </div>
+  <div class="sc">
+    <div class="sc-label">이번 주 변경</div>
+    <div class="sc-val" id="s-ch" style="color:#d97706">—<em>건</em></div>
+    <div class="sc-sub">신규·취소·일정변경</div>
+  </div>
+  <div class="sc">
+    <div class="sc-label">잔여 일수</div>
+    <div class="sc-val" id="s-remain">—<em>일</em></div>
+    <div class="prog-track"><div class="prog-fill" id="pf-remain" style="background:#dc2626;width:0%"></div></div>
+    <div class="sc-sub" id="s-remain-sub"></div>
+  </div>
+</div>
+
+<div class="info-row">
+  <div class="ic">
+    <div class="ic-title"><span class="ic-dot" style="background:#d97706"></span>이번 주 변경 사항</div>
+    <div id="change-log"></div>
+  </div>
+  <div class="ic">
+    <div class="ic-title"><span class="ic-dot" style="background:#b53030"></span>특이사항 / 이슈</div>
+    <div id="issues-log"></div>
+  </div>
+</div>
+
+<div class="filterbar">
+  <span class="fl-label">공종</span>
+  <button class="fbtn on" data-c="all" onclick="setFilter('all',this)">전체</button>
+  <button class="fbtn" data-c="건축" onclick="setFilter('건축',this)"><span class="fd" style="background:var(--건축)"></span>건축</button>
+  <button class="fbtn" data-c="전기" onclick="setFilter('전기',this)"><span class="fd" style="background:var(--전기)"></span>전기</button>
+  <button class="fbtn" data-c="소방" onclick="setFilter('소방',this)"><span class="fd" style="background:var(--소방)"></span>소방</button>
+  <button class="fbtn" data-c="공조" onclick="setFilter('공조',this)"><span class="fd" style="background:var(--공조)"></span>공조</button>
+  <button class="fbtn" data-c="배관" onclick="setFilter('배관',this)"><span class="fd" style="background:var(--배관)"></span>배관</button>
+</div>
+
+<div class="gantt-section">
+  <div class="gantt-wrap" id="gantt-wrap"></div>
+</div>
+
+<div class="legend">
+  <div class="li"><div class="li-plan"></div>계획 바 (흐리게)</div>
+  <div class="li"><div class="li-sw" style="background:#5548c8"></div>건축</div>
+  <div class="li"><div class="li-sw" style="background:#1a6db0"></div>전기</div>
+  <div class="li"><div class="li-sw" style="background:#b53030"></div>소방</div>
+  <div class="li"><div class="li-sw" style="background:#18896a"></div>공조</div>
+  <div class="li"><div class="li-sw" style="background:#ad6612"></div>배관</div>
+  <div class="li-div"></div>
+  <div class="li"><div class="li-report-line"></div>보고기준일</div>
+  <div class="li"><div class="li-today-line"></div>오늘(자동)</div>
+  <div class="li"><div class="li-sw" style="background:#dcfce7;border:1px solid #86efac"></div>신규</div>
+  <div class="li"><div class="li-sw" style="background:repeating-linear-gradient(45deg,#9ca3af 0,#9ca3af 3px,transparent 3px,transparent 7px)"></div>취소</div>
+</div>
+
+</body>
+</html>
