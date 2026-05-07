@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공정 진행 현황 보고서</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--surface3:#eceef2;
+  --border:rgba(0,0,0,0.07);--border-md:rgba(0,0,0,0.12);
+  --text:#181e2e;--text-muted:#6b7280;--text-dim:#adb5bd;
+  --건축:#5548c8;--전기:#1a6db0;--소방:#b53030;--공조:#18896a;--덕트:#0e7490;--배관:#ad6612;
+  --bar-plan:#c0c8d4;--bar-actual:#e8c519;--bar-done:#b8980a;--today:#dc2626;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:"Noto Sans KR",sans-serif;font-size:13px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.topbar{position:sticky;top:0;z-index:200;background:var(--surface);border-bottom:1px solid var(--border-md);box-shadow:0 1px 4px rgba(0,0,0,0.07);height:54px;display:flex;align-items:center;padding:0 24px;gap:14px;}
+.tb-logo{font-size:15px;font-weight:700;}
+.tb-logo span{color:var(--건축);}
+.tb-div{width:1px;height:18px;background:var(--border-md);flex-shrink:0;}
+.tb-week{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;letter-spacing:0.06em;color:var(--text-muted);}
+.tb-rc{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:600;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:20px;padding:3px 10px;white-space:nowrap;}
+.tb-tc{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:600;background:#fef2f2;color:var(--today);border:1px solid #fca5a5;border-radius:20px;padding:3px 10px;white-space:nowrap;}
+.tb-sp{flex:1;}
+.tb-btn{font-size:12px;color:var(--text-muted);border:1px solid var(--border-md);background:var(--surface2);border-radius:6px;padding:5px 12px;cursor:pointer;}
+.tb-btn:hover{background:var(--surface3);color:var(--text);}
+.stats-row{padding:16px 24px 0;display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.sc-label{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px;}
+.sc-val{font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:600;line-height:1;color:var(--text);}
+.sc-val em{font-size:13px;font-style:normal;color:var(--text-muted);font-family:"Noto Sans KR",sans-serif;}
+.sc-sub{font-size:11px;color:var(--text-dim);margin-top:4px;}
+.prog-track{height:3px;background:var(--surface3);border-radius:2px;margin-top:8px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;transition:width .7s ease;}
+.info-row{padding:12px 24px 0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ic{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.ic-title{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.ic-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.ch-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.ch-item:last-child{border-bottom:none;}
+.ch-badge{font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:2px 7px;border-radius:10px;white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.bn{background:#dcfce7;color:#15803d;}.bx{background:#f3f4f6;color:#6b7280;}.bd{background:#fef9c3;color:#92400e;}.be{background:#dbeafe;color:#1e40af;}.bch{background:#fce7f3;color:#9d174d;}
+.ch-text{color:var(--text-muted);line-height:1.4;}
+.ch-text strong{color:var(--text);font-weight:500;}
+.iss-item{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-muted);align-items:flex-start;}
+.iss-item:last-child{border-bottom:none;}
+.iss-num{font-family:"JetBrains Mono",monospace;font-size:10px;color:var(--text-dim);flex-shrink:0;margin-top:2px;}
+.filterbar{padding:14px 24px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.fl-label{font-size:11px;font-weight:600;color:var(--text-muted);margin-right:2px;}
+.fbtn{font-family:"Noto Sans KR",sans-serif;font-size:12px;padding:5px 14px;border-radius:20px;border:1px solid var(--border-md);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
+.fbtn .fd{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.fbtn:hover{background:var(--surface3);color:var(--text);}
+.fbtn.on{font-weight:500;}
+.fbtn.on[data-c="all"]{background:var(--text);color:#fff;border-color:var(--text);}
+.fbtn.on[data-c="건축"]{background:#edeafc;border-color:#a99ef0;color:var(--건축);}
+.fbtn.on[data-c="전기"]{background:#ddeaf8;border-color:#93c5fd;color:var(--전기);}
+.fbtn.on[data-c="소방"]{background:#fce8e8;border-color:#fca5a5;color:var(--소방);}
+.fbtn.on[data-c="공조"]{background:#d9f4ec;border-color:#6ee7b7;color:var(--공조);}
+.fbtn.on[data-c="덕트"]{background:#cffafe;border-color:#67e8f9;color:var(--덕트);}
+.fbtn.on[data-c="배관"]{background:#fdf0de;border-color:#fcd34d;color:var(--배관);}
+.gantt-section{padding:14px 24px 40px;}
+.gantt-wrap{background:var(--surface);border:1px solid var(--border-md);border-radius:10px;overflow:hidden;min-width:960px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+.ghead{display:flex;background:var(--surface2);border-bottom:1px solid var(--border-md);position:sticky;top:54px;z-index:100;}
+.ghead-lbl{width:230px;min-width:230px;border-right:1px solid var(--border-md);padding:0 14px;display:flex;align-items:center;height:56px;}
+.ghead-lbl-text{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-muted);}
+.gcol{flex:1;overflow:hidden;}
+.months-row{display:flex;height:26px;border-bottom:1px solid var(--border);}
+.mseg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);border-right:1px solid var(--border-md);font-family:"JetBrains Mono",monospace;}
+.mseg:last-child{border-right:none;}
+.days-row{display:flex;height:30px;}
+.dseg{flex:1;display:flex;align-items:center;justify-content:center;font-size:9px;font-family:"JetBrains Mono",monospace;color:var(--text-dim);border-right:1px solid var(--border);}
+.dseg:last-child{border-right:none;}
+.dseg.wknd{background:rgba(0,0,0,0.016);}
+.dseg.tod{background:#fef2f2;color:var(--today);font-weight:700;}
+.cat-grp{border-top:2px solid var(--border-md);}
+.cat-row{display:flex;align-items:stretch;cursor:pointer;user-select:none;}
+.cat-cell{width:230px;min-width:230px;padding:10px 14px;border-right:1px solid var(--border-md);display:flex;align-items:center;gap:8px;}
+.cat-stripe{width:4px;height:26px;border-radius:2px;flex-shrink:0;}
+.cat-name{font-size:13px;font-weight:700;}
+.cat-sub{font-size:10px;color:var(--text-dim);margin-left:4px;}
+.cat-pct{font-size:11px;font-family:"JetBrains Mono",monospace;font-weight:700;padding:3px 9px;border-radius:10px;margin-left:auto;flex-shrink:0;}
+.cat-toggle{font-size:11px;flex-shrink:0;margin-left:4px;}
+.cat-tl{flex:1;position:relative;min-height:44px;}
+.task-grp{border-top:1px solid var(--border);}
+.tname-row{display:flex;align-items:stretch;min-height:22px;}
+.tname-cell{width:230px;min-width:230px;padding:5px 12px 0 26px;border-right:1px solid var(--border);display:flex;align-items:center;gap:5px;}
+.ticon{font-size:10px;flex-shrink:0;}
+.tname{font-size:11px;color:var(--text-muted);line-height:1.3;flex:1;}
+.tpct{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:600;flex-shrink:0;white-space:nowrap;}
+.tname-tl{flex:1;position:relative;min-height:22px;}
+.plan-row{display:flex;align-items:stretch;min-height:15px;}
+.plan-lc{width:230px;min-width:230px;padding:0 12px 0 36px;border-right:1px solid var(--border);display:flex;align-items:center;}
+.plan-lbl{font-size:9px;font-weight:700;letter-spacing:0.06em;color:var(--text-dim);}
+.plan-tl{flex:1;position:relative;min-height:15px;}
+.actual-row{display:flex;align-items:stretch;min-height:22px;padding-bottom:4px;}
+.actual-lc{width:230px;min-width:230px;padding:0 12px 0 36px;border-right:1px solid var(--border);display:flex;align-items:center;}
+.actual-lbl{font-size:9px;font-weight:700;letter-spacing:0.06em;}
+.actual-tl{flex:1;position:relative;min-height:22px;}
+.glines{position:absolute;inset:0;display:flex;pointer-events:none;}
+.gl{flex:1;border-right:1px solid var(--border);height:100%;}
+.gl:last-child{border-right:none;}
+.gl.wknd{background:rgba(0,0,0,0.013);}
+.plan-bar{position:absolute;height:7px;top:50%;transform:translateY(-50%);border-radius:3px;background:var(--bar-plan);pointer-events:none;z-index:1;}
+.actual-bar{position:absolute;height:17px;top:50%;transform:translateY(-50%);border-radius:3px;background:var(--bar-actual);display:flex;align-items:center;padding:0 6px;font-size:9px;font-weight:700;color:#4a3300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:default;z-index:2;}
+.actual-bar:hover{filter:brightness(1.06);z-index:10;}
+.actual-bar.done{background:var(--bar-done);opacity:0.85;color:#fff;}
+.actual-bar.active{box-shadow:0 0 0 2px #f59e0b;}
+.bar-prog{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:rgba(0,0,0,0.12);pointer-events:none;}
+.today-line{position:absolute;top:0;bottom:0;width:2px;background:var(--today);opacity:0.7;z-index:30;pointer-events:none;}
+.today-line::before{content:"";position:absolute;top:3px;left:-3px;width:8px;height:8px;background:var(--today);border-radius:50%;}
+.legend{padding:12px 24px;background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.li{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);}
+.li-plan{width:18px;height:6px;background:var(--bar-plan);border-radius:2px;}
+.li-actual{width:18px;height:13px;background:var(--bar-actual);border-radius:2px;}
+.li-done{width:18px;height:13px;background:var(--bar-done);border-radius:2px;opacity:.85;}
+.li-today{width:2px;height:14px;background:var(--today);border-radius:1px;opacity:.7;}
+.li-div{width:1px;height:14px;background:var(--border-md);}
+.tooltip{position:fixed;z-index:999;pointer-events:none;background:#1a1d26;color:#e8eaf0;font-size:11px;line-height:1.6;padding:9px 13px;border-radius:7px;box-shadow:0 4px 16px rgba(0,0,0,0.22);opacity:0;transition:opacity .1s;white-space:nowrap;}
+@media print{.topbar,.ghead{position:static;}.tb-btn{display:none;}body{background:#fff;}}
+</style>
+</head>
+<body>
+<div class="tooltip" id="tip"></div>
+<script>
+// =============================================
+// ★ 매주 이 REPORT 블록만 수정하세요 ★
+// =============================================
+var REPORT = {
+  weekLabel:    "W06",
+  reportDate:   "2026-05-07",
+  projectStart: "2026-03-23",
+  projectEnd:   "2026-06-15",
+  changes: [
+    { type:"change", text:"<strong>전기 분전반 설치</strong> 계획(4/22~28) → 실제 5/7~5/8로 조정" },
+    { type:"new",    text:"<strong>배관(대주산업)</strong> 5/6 자재반입 시작, 5/15까지 진행 예정" },
+    { type:"change", text:"<strong>덕트(디에스엔지니어링)</strong> 4/21~24 완료 후 5/6부터 추가 시공 중" }
+  ],
+  issues: [
+    "건축(리한건설) — 3/23~4/29 전 공정 완료",
+    "전기(동원테크) — 철거·레이스웨이·전등설치 완료, 분전반 5/7~8 진행 중",
+    "소방(정평이앤씨) — 3/23~4/24 전 공정 완료",
+    "공조(휴론텍) — 3/24~4/17 DUCT설치·냉난방기 완료",
+    "덕트(디에스엔지니어링) — 4/21~24 완료, 5/6~ 추가시공 결재승인",
+    "배관(대주산업) — 5/6 시작, 5/15까지 UT배관 작업 예정"
+  ],
+  progress: {
+    // 건축 (리한건설) — 전체 완료
+    "B-01":100,"B-02":100,"B-03":100,"B-04":100,"B-05":100,
+    "B-06":100,"B-07":100,"B-08":100,"B-09":100,
+    // 전기 (동원테크) — 분전반/마감 진행중
+    "E-01":100,"E-02":100,"E-03":100,"E-04":100,
+    "E-05":30,"E-06":0,
+    // 소방 (정평이앤씨) — 전체 완료
+    "F-01":100,"F-02":100,"F-03":100,"F-04":100,
+    // 공조 (휴론텍) — 전체 완료
+    "H-01":100,"H-02":100,"H-03":100,
+    // 덕트 (디에스엔지니어링)
+    "D-01":100,"D-02":20,"D-03":0,
+    // 배관 (대주산업)
+    "P-01":20,"P-02":0,"P-03":0
+  },
+  // 실제 날짜가 계획과 다른 것만 입력
+  actualDates: {
+    "E-05": { start:"2026-05-07", end:"2026-05-08" }
+  },
+  taskStatus: {}
+};
+// =============================================
+</script>
+<script>
+function mkD(s){ return new Date(s+"T00:00:00"); }
+function d(y,m,dd){ return new Date(y,m-1,dd); }
+
+var CC={"건축":"#5548c8","전기":"#1a6db0","소방":"#b53030","공조":"#18896a","덕트":"#0e7490","배관":"#ad6612"};
+var CB={"건축":"#edeafc","전기":"#ddeaf8","소방":"#fce8e8","공조":"#d9f4ec","덕트":"#cffafe","배관":"#fdf0de"};
+
+// =============================================
+// 공정 데이터 — 엑셀 실제 작업 이력 기반
+// s/e = 계획 일정, actualDates = 실적 일정(다를 때만)
+// 실적 날짜: 엑셀에서 추출한 실제 작업일 반영
+// =============================================
+var categories = [
+
+  // ── 건축공사 (리한건설) ─────────────────
+  // 실적: 3/23~4/29 (27일 작업완료)
+  { id:"건축", name:"건축공사", sub:"리한건설", tasks:[
+    { id:"B-01", name:"바닥 보양 및 6·7층 철거",
+      ps:d(2026,3,25), pe:d(2026,4,4),
+      as:d(2026,3,23), ae:d(2026,4,3) },
+    { id:"B-02", name:"폐기물 반출·바닥 면갈이·코어 작업",
+      ps:d(2026,4,2),  pe:d(2026,4,10),
+      as:d(2026,3,30), ae:d(2026,4,3) },
+    { id:"B-03", name:"칸막이·창호·방화문 설치",
+      ps:d(2026,4,8),  pe:d(2026,4,20),
+      as:d(2026,4,6),  ae:d(2026,4,10) },
+    { id:"B-04", name:"칸막이벽·창호·유리·페인트 도색",
+      ps:d(2026,4,12), pe:d(2026,4,22),
+      as:d(2026,4,13), ae:d(2026,4,17) },
+    { id:"B-05", name:"내산 에폭시 라이닝 (1차)",
+      ps:d(2026,4,18), pe:d(2026,4,20),
+      as:d(2026,4,18), ae:d(2026,4,19) },
+    { id:"B-06", name:"OA플로어·경사로·텍스·천장도색",
+      ps:d(2026,4,23), pe:d(2026,4,28),
+      as:d(2026,4,23), ae:d(2026,4,24) },
+    { id:"B-07", name:"천장도색·경사로·유리·방화문 설치",
+      ps:d(2026,4,25), pe:d(2026,4,28),
+      as:d(2026,4,27), ae:d(2026,4,28) },
+    { id:"B-08", name:"에폭시 라이닝 2차",
+      ps:d(2026,4,25), pe:d(2026,4,28),
+      as:d(2026,4,25), ae:d(2026,4,28) },
+    { id:"B-09", name:"준공청소 (4/29)",
+      ps:d(2026,4,29), pe:d(2026,4,29),
+      as:d(2026,4,29), ae:d(2026,4,29) }
+  ]},
+
+  // ── 전기공사 (동원테크) ─────────────────
+  // 실적: 3/23~3/24 철거, 4/6~10 레이스웨이, 4/22~24 전등, 5/7~8 분전반
+  { id:"전기", name:"전기공사", sub:"동원테크", tasks:[
+    { id:"E-01", name:"조명·케이블 철거",
+      ps:d(2026,3,23), pe:d(2026,4,6),
+      as:d(2026,3,23), ae:d(2026,3,24) },
+    { id:"E-02", name:"케이블 포설·레이스웨이 설치",
+      ps:d(2026,4,6),  pe:d(2026,4,14),
+      as:d(2026,4,6),  ae:d(2026,4,10) },
+    { id:"E-03", name:"전등 설치 (4/22~24)",
+      ps:d(2026,4,22), pe:d(2026,4,23),
+      as:d(2026,4,22), ae:d(2026,4,24) },
+    { id:"E-04", name:"전열설치·케이블 포설 (4/22~28 계획)",
+      ps:d(2026,4,22), pe:d(2026,4,28),
+      as:d(2026,4,22), ae:d(2026,4,28) },
+    { id:"E-05", name:"분전반 설치 및 결선",
+      ps:d(2026,4,22), pe:d(2026,4,28),
+      as:d(2026,5,7),  ae:d(2026,5,8) },
+    { id:"E-06", name:"마감 및 잔손보기",
+      ps:d(2026,5,10), pe:d(2026,5,30),
+      as:d(2026,5,10), ae:d(2026,5,30) }
+  ]},
+
+  // ── 소방공사 (정평이앤씨) ───────────────
+  // 실적: 3/23~25 철거, 4/1~3 철거(스프링클러), 4/7~17 설치, 4/23~24 기구설치·보온
+  { id:"소방", name:"소방공사", sub:"정평이앤씨", tasks:[
+    { id:"F-01", name:"스프링클러·소방전기 설비 철거",
+      ps:d(2026,3,23), pe:d(2026,3,31),
+      as:d(2026,3,23), ae:d(2026,3,25) },
+    { id:"F-02", name:"스프링클러 배관 철거 (4/1, 4/3)",
+      ps:d(2026,4,1),  pe:d(2026,4,3),
+      as:d(2026,4,1),  ae:d(2026,4,3) },
+    { id:"F-03", name:"6·7층 스프링클러·소방전기 설치",
+      ps:d(2026,4,7),  pe:d(2026,4,22),
+      as:d(2026,4,7),  ae:d(2026,4,17) },
+    { id:"F-04", name:"소방기계·전기 기구설치·보온 마감",
+      ps:d(2026,4,23), pe:d(2026,4,24),
+      as:d(2026,4,23), ae:d(2026,4,24) }
+  ]},
+
+  // ── 공조공사 (휴론텍) ───────────────────
+  // 실적: 3/24~25 철거, 4/7~10 덕트+냉난방기, 4/16~17 덕트 신설
+  { id:"공조", name:"공조공사", sub:"휴론텍", tasks:[
+    { id:"H-01", name:"DUCT 철거 6·7층 (3/24~25)",
+      ps:d(2026,3,24), pe:d(2026,3,25),
+      as:d(2026,3,24), ae:d(2026,3,25) },
+    { id:"H-02", name:"DUCT 신설·냉난방기 설치 (4/7~10)",
+      ps:d(2026,4,7),  pe:d(2026,4,10),
+      as:d(2026,4,7),  ae:d(2026,4,10) },
+    { id:"H-03", name:"덕트 신설 (4/16~17)",
+      ps:d(2026,4,16), pe:d(2026,4,17),
+      as:d(2026,4,16), ae:d(2026,4,17) }
+  ]},
+
+  // ── 덕트공사 (디에스엔지니어링) ─────────
+  // 실적: 4/21~24 완료, 5/6~8 추가 진행 중
+  { id:"덕트", name:"덕트공사", sub:"디에스엔지니어링", tasks:[
+    { id:"D-01", name:"국소배기·덕트라인 설치 (4/21~24)",
+      ps:d(2026,4,21), pe:d(2026,4,24),
+      as:d(2026,4,21), ae:d(2026,4,24) },
+    { id:"D-02", name:"덕트라인 설치 추가 (5/6~8)",
+      ps:d(2026,4,25), pe:d(2026,5,8),
+      as:d(2026,5,6),  ae:d(2026,5,8) },
+    { id:"D-03", name:"시운전·유방서 심사 (6/1~5)",
+      ps:d(2026,6,1),  pe:d(2026,6,5),
+      as:d(2026,6,1),  ae:d(2026,6,5) }
+  ]},
+
+  // ── 배관공사 (대주산업) ─────────────────
+  // 실적: 5/6 시작, 5/15까지 UT 배관 예정 (일부 결재승인, 일부 작성완료)
+  { id:"배관", name:"배관공사", sub:"대주산업", tasks:[
+    { id:"P-01", name:"UT 배관 작업 (5/6~8, 결재승인)",
+      ps:d(2026,5,6),  pe:d(2026,5,8),
+      as:d(2026,5,6),  ae:d(2026,5,8) },
+    { id:"P-02", name:"UT 배관 작업 (5/9~10, 작성완료)",
+      ps:d(2026,5,9),  pe:d(2026,5,10),
+      as:d(2026,5,9),  ae:d(2026,5,10) },
+    { id:"P-03", name:"UT 배관 작업 (5/11~15, 결재승인)",
+      ps:d(2026,5,11), pe:d(2026,5,15),
+      as:d(2026,5,11), ae:d(2026,5,15) }
+  ]}
+
+];
+
+// ── 날짜 공통 ────────────────────────────────
+var PS = mkD(REPORT.projectStart);
+var PE = mkD(REPORT.projectEnd);
+var RD = mkD(REPORT.reportDate);
+var TODAY = (function(){ var t=new Date(); return new Date(t.getFullYear(),t.getMonth(),t.getDate()); })();
+var TOTAL = Math.round((PE-PS)/86400000)+1;
+
+function dayOff(dt){ return Math.max(0, Math.round((dt-PS)/86400000)); }
+function pct(o){ return ((o/TOTAL)*100).toFixed(4)+"%"; }
+function pw(w){ return ((Math.max(0,w)/TOTAL)*100).toFixed(4)+"%"; }
+function fmtD(dt){ return (dt.getMonth()+1)+"/"+dt.getDate(); }
+function fmtFull(dt){ return dt.getFullYear()+"."+("0"+(dt.getMonth()+1)).slice(-2)+"."+("0"+dt.getDate()).slice(-2); }
+
+function buildMonths(){
+  var m=[],c=new Date(PS);
+  var L=["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+  while(c<=PE){
+    var mo=c.getMonth(),y=c.getFullYear(),n=0;
+    while(c<=PE&&c.getMonth()===mo){n++;c.setDate(c.getDate()+1);}
+    m.push({l:L[mo]+" "+y,d:n});
+  }
+  return m;
+}
+function buildDays(){
+  var ds=[],c=new Date(PS),i=0;
+  while(c<=PE){
+    var w=c.getDay();
+    ds.push({v:c.getDate(),i:i,wknd:w===0||w===6,tod:c.toDateString()===TODAY.toDateString()});
+    c=new Date(c);c.setDate(c.getDate()+1);i++;
+  }
+  return ds;
+}
+
+function initTopbar(){
+  document.getElementById("tb-week").textContent=REPORT.weekLabel;
+  document.getElementById("tb-rc").textContent="보고기준 "+fmtFull(RD);
+  document.getElementById("tb-tc").textContent="오늘 "+fmtFull(TODAY);
+}
+
+function initStats(){
+  var all=[],i,ci,ti,t;
+  for(ci=0;ci<categories.length;ci++)
+    for(ti=0;ti<categories[ci].tasks.length;ti++)
+      all.push(categories[ci].tasks[ti]);
+  var T=all.length,A=0,D=0,pr=[];
+  for(i=0;i<all.length;i++){
+    t=all[i];
+    if(REPORT.taskStatus[t.id]==="cancelled") continue;
+    var ae=t.ae;
+    var as=t.as;
+    if(as<=TODAY&&ae>=TODAY) A++;
+    if(ae<TODAY) D++;
+    pr.push(REPORT.progress[t.id]||0);
+  }
+  var ov=pr.length?Math.round(pr.reduce(function(x,y){return x+y;},0)/pr.length):0;
+  var totD=Math.round((PE-PS)/86400000);
+  var el=Math.max(0,Math.min(Math.round((TODAY-PS)/86400000),totD));
+  var tp=Math.round(el/totD*100);
+  var re=Math.max(0,Math.round((PE-TODAY)/86400000));
+
+  document.getElementById("s-pct").innerHTML=ov+"<em>%</em>";
+  document.getElementById("pf-pct").style.width=ov+"%";
+  document.getElementById("s-pct-sub").textContent="계획 경과 "+tp+"% 대비";
+  document.getElementById("s-active").innerHTML=A+"<em>건</em>";
+  document.getElementById("s-done").innerHTML=D+"<em>건</em>";
+  document.getElementById("s-done-sub").textContent="전체 "+T+"건 중";
+  document.getElementById("s-ch").innerHTML=REPORT.changes.length+"<em>건</em>";
+  document.getElementById("s-remain").innerHTML=re+"<em>일</em>";
+  document.getElementById("pf-remain").style.width=tp+"%";
+  document.getElementById("s-remain-sub").textContent="준공 예정 "+fmtD(PE)+"까지";
+
+  var BM={new:"bn",cancel:"bx",delay:"bd",early:"be",change:"bch"};
+  var LM={new:"신규",cancel:"취소",delay:"지연",early:"단축",change:"변경"};
+  var html="",cl=document.getElementById("change-log");
+  for(i=0;i<REPORT.changes.length;i++){
+    var ch=REPORT.changes[i];
+    html+='<div class="ch-item"><span class="ch-badge '+(BM[ch.type]||"bch")+'">'+(LM[ch.type]||ch.type)+'</span><span class="ch-text">'+ch.text+'</span></div>';
+  }
+  cl.innerHTML=html||'<div class="ch-item"><span class="ch-text" style="color:var(--text-dim)">변경 없음</span></div>';
+
+  var il=document.getElementById("issues-log"),html2="";
+  for(i=0;i<REPORT.issues.length;i++)
+    html2+='<div class="iss-item"><span class="iss-num">'+("0"+(i+1)).slice(-2)+'</span><span>'+REPORT.issues[i]+'</span></div>';
+  il.innerHTML=html2||'<div class="iss-item"><span style="color:var(--text-dim)">특이사항 없음</span></div>';
+}
+
+var activeFilter="all", collapsed={};
+function setFilter(cat,btn){
+  activeFilter=cat;
+  var bs=document.querySelectorAll(".fbtn");
+  for(var i=0;i<bs.length;i++) bs[i].classList.remove("on");
+  btn.classList.add("on");
+  renderGantt();
+}
+function toggleCat(id){ collapsed[id]=!collapsed[id]; renderGantt(); }
+
+function renderGantt(){
+  var months=buildMonths(),days=buildDays();
+  var todayP=pct(dayOff(TODAY));
+  var h="",mi,di,ci,ti;
+
+  // 헤더
+  h+='<div class="ghead"><div class="ghead-lbl"><span class="ghead-lbl-text">공 종 / 업 체 / 작 업</span></div><div class="gcol"><div class="months-row">';
+  for(mi=0;mi<months.length;mi++)
+    h+='<div class="mseg" style="flex:'+months[mi].d+' '+months[mi].d+' 0;">'+months[mi].l+'</div>';
+  h+='</div><div class="days-row">';
+  for(di=0;di<days.length;di++){
+    var dc="dseg"+(days[di].wknd?" wknd":"")+(days[di].tod?" tod":"");
+    h+='<div class="'+dc+'">'+(days[di].v%4===1||days[di].tod?days[di].v:"")+'</div>';
+  }
+  h+='</div></div></div>';
+
+  function GL(){
+    var g='<div class="glines">';
+    for(var i=0;i<days.length;i++) g+='<div class="gl'+(days[i].wknd?" wknd":"")+'"></div>';
+    return g+'</div>';
+  }
+  function TL(){ return '<div class="today-line" style="left:'+todayP+'"></div>'; }
+
+  var cats=activeFilter==="all"?categories:categories.filter(function(c){return c.id===activeFilter;});
+
+  for(ci=0;ci<cats.length;ci++){
+    var cat=cats[ci];
+    var color=CC[cat.id],bg=CB[cat.id],isc=collapsed[cat.id];
+
+    var prArr=[];
+    for(ti=0;ti<cat.tasks.length;ti++)
+      if(REPORT.taskStatus[cat.tasks[ti].id]!=="cancelled")
+        prArr.push(REPORT.progress[cat.tasks[ti].id]||0);
+    var avg=prArr.length?Math.round(prArr.reduce(function(a,b){return a+b;},0)/prArr.length):0;
+    var arrow=isc?"&#9654;":"&#9660;";
+
+    // 공종 헤더 — 문자열 연결
+    h+='<div class="cat-grp">';
+    h+='<div class="cat-row" style="background:'+bg+';" data-catid="'+cat.id+'" onclick="toggleCat(this.dataset.catid)">';
+    h+='<div class="cat-cell" style="border-right:2px solid '+color+';">';
+    h+='<div class="cat-stripe" style="background:'+color+'"></div>';
+    h+='<span class="cat-name" style="color:'+color+'">'+cat.name+'</span>';
+    h+='<span class="cat-sub">'+cat.sub+'</span>';
+    h+='<span class="cat-pct" style="background:'+color+'20;color:'+color+';border:1px solid '+color+'40;">'+avg+'%</span>';
+    h+='<span class="cat-toggle" style="color:'+color+'88;">'+arrow+'</span>';
+    h+='</div>';
+    h+='<div class="cat-tl">'+GL()+TL()+'</div>';
+    h+='</div>';
+
+    if(!isc){
+      for(ti=0;ti<cat.tasks.length;ti++){
+        var task=cat.tasks[ti];
+        // 계획
+        var pS=dayOff(task.ps), pW=dayOff(task.pe)-pS+1;
+        // 실적 (actualDates override 가능)
+        var aS=task.as, aE=task.ae;
+        if(REPORT.actualDates[task.id]){
+          var ov2=REPORT.actualDates[task.id];
+          if(ov2.start) aS=mkD(ov2.start);
+          if(ov2.end)   aE=mkD(ov2.end);
+        }
+        var aO=dayOff(aS), aW=dayOff(aE)-aO+1;
+        var prog=REPORT.progress[task.id]||0;
+        var st=REPORT.taskStatus[task.id]||null;
+        var isDone=(prog===100);
+        var isActive=(aS<=TODAY&&aE>=TODAY&&st!=="cancelled");
+        var isCan=(st==="cancelled");
+        var bCls="actual-bar"+(isDone&&!isCan?" done":"")+(isActive?" active":"");
+        var icon=isDone?"&#10003;":(isActive?"&#9679;":(isCan?"&#10005;":""));
+        var iconColor=isDone?"#16a34a":(isActive?color:"#9ca3af");
+        var pctColor=isDone?"#16a34a":(isActive?color:"var(--text-dim)");
+
+        h+='<div class="task-grp">';
+        // 작업명
+        h+='<div class="tname-row"><div class="tname-cell">';
+        if(icon) h+='<span class="ticon" style="color:'+iconColor+'">'+icon+'</span>';
+        h+='<span class="tname"'+(isCan?' style="text-decoration:line-through;color:var(--text-dim)"':'')+'>'+task.name+'</span>';
+        h+='<span class="tpct" style="color:'+pctColor+'">'+(isCan?"취소":prog+"%")+'</span>';
+        h+='</div><div class="tname-tl">'+GL()+TL()+'</div></div>';
+
+        // 계획 행
+        h+='<div class="plan-row"><div class="plan-lc"><span class="plan-lbl">계획</span></div>';
+        h+='<div class="plan-tl">'+GL()+TL();
+        h+='<div class="plan-bar" style="left:'+pct(pS)+';width:'+pw(pW)+'"></div>';
+        h+='</div></div>';
+
+        // 실적 행
+        h+='<div class="actual-row"><div class="actual-lc">';
+        h+='<span class="actual-lbl" style="color:'+(isCan?"#9ca3af":color)+'">실적</span>';
+        h+='</div><div class="actual-tl">'+GL()+TL();
+        h+='<div class="'+bCls+'" style="left:'+pct(aO)+';width:'+pw(aW)+';">';
+        h+='<div class="bar-prog" style="width:'+prog+'%"></div>';
+        if(aW>=5) h+=task.name;
+        h+='</div></div></div>';
+
+        h+='</div>';
+      }
+    }
+    h+='</div>';
+  }
+
+  document.getElementById("gantt-wrap").innerHTML=h;
+}
+
+document.addEventListener("mousemove",function(e){
+  var t=document.getElementById("tip");
+  if(t.style.opacity!=="0"){t.style.left=(e.clientX+14)+"px";t.style.top=(e.clientY-8)+"px";}
+});
+document.addEventListener("DOMContentLoaded",function(){
+  initTopbar(); initStats(); renderGantt();
+});
+</script>
+
+<!-- DOM -->
+<div class="topbar">
+  <div class="tb-logo">공정<span>현황</span></div>
+  <div class="tb-div"></div>
+  <div class="tb-week" id="tb-week"></div>
+  <div class="tb-div"></div>
+  <div class="tb-rc" id="tb-rc"></div>
+  <div class="tb-tc" id="tb-tc"></div>
+  <div class="tb-sp"></div>
+  <button class="tb-btn" onclick="window.print()">&#128424; 인쇄 / PDF</button>
+</div>
+<div class="stats-row">
+  <div class="sc"><div class="sc-label">전체 진척률</div><div class="sc-val" id="s-pct">-<em>%</em></div><div class="prog-track"><div class="prog-fill" id="pf-pct" style="background:#5548c8;width:0%"></div></div><div class="sc-sub" id="s-pct-sub"></div></div>
+  <div class="sc"><div class="sc-label">진행 중</div><div class="sc-val" id="s-active" style="color:#16a34a">-<em>건</em></div><div class="sc-sub">오늘 기준 진행 중인 작업</div></div>
+  <div class="sc"><div class="sc-label">완료</div><div class="sc-val" id="s-done" style="color:#6b7280">-<em>건</em></div><div class="sc-sub" id="s-done-sub"></div></div>
+  <div class="sc"><div class="sc-label">이번 주 변경</div><div class="sc-val" id="s-ch" style="color:#d97706">-<em>건</em></div><div class="sc-sub">신규·취소·일정변경</div></div>
+  <div class="sc"><div class="sc-label">잔여 일수</div><div class="sc-val" id="s-remain">-<em>일</em></div><div class="prog-track"><div class="prog-fill" id="pf-remain" style="background:#dc2626;width:0%"></div></div><div class="sc-sub" id="s-remain-sub"></div></div>
+</div>
+<div class="info-row">
+  <div class="ic"><div class="ic-title"><span class="ic-dot" style="background:#d97706"></span>이번 주 변경 사항</div><div id="change-log"></div></div>
+  <div class="ic"><div class="ic-title"><span class="ic-dot" style="background:#b53030"></span>특이사항 / 이슈</div><div id="issues-log"></div></div>
+</div>
+<div class="filterbar">
+  <span class="fl-label">공종</span>
+  <button class="fbtn on" data-c="all" onclick="setFilter('all',this)">전체</button>
+  <button class="fbtn" data-c="건축" onclick="setFilter('건축',this)"><span class="fd" style="background:var(--건축)"></span>건축 (리한)</button>
+  <button class="fbtn" data-c="전기" onclick="setFilter('전기',this)"><span class="fd" style="background:var(--전기)"></span>전기 (동원테크)</button>
+  <button class="fbtn" data-c="소방" onclick="setFilter('소방',this)"><span class="fd" style="background:var(--소방)"></span>소방 (정평)</button>
+  <button class="fbtn" data-c="공조" onclick="setFilter('공조',this)"><span class="fd" style="background:var(--공조)"></span>공조 (휴론텍)</button>
+  <button class="fbtn" data-c="덕트" onclick="setFilter('덕트',this)"><span class="fd" style="background:var(--덕트)"></span>덕트 (디에스)</button>
+  <button class="fbtn" data-c="배관" onclick="setFilter('배관',this)"><span class="fd" style="background:var(--배관)"></span>배관 (대주)</button>
+</div>
+<div class="gantt-section"><div class="gantt-wrap" id="gantt-wrap"></div></div>
+<div class="legend">
+  <div class="li"><div class="li-plan"></div>계획 (회색)</div>
+  <div class="li"><div class="li-actual"></div>실적 진행 중 (노란색)</div>
+  <div class="li"><div class="li-done"></div>실적 완료 (진한 노란색)</div>
+  <div class="li-div"></div>
+  <div class="li"><div class="li-today"></div>오늘 (자동)</div>
+</div>
+</body>
+</html>
